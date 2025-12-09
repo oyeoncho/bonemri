@@ -1,244 +1,264 @@
-# Pelvic Bone MRI Survival – Code Repository
+# Prognostic Impact of Pelvic Bone MRI Features in Cervical Cancer Undergoing CCRT  
+### Code Repository (Main + Supplementary Analyses)
 
-> End-to-end code and notebooks for **deep learning–based radiomics of pelvic bone T1‑weighted MRI** and survival prediction with a **Mixture Stretched‑Exponential (Mixture‑SE)** model.
+This repository contains the complete implementation used in the manuscript  
 
-This README summarizes how to set up the environment, prepare data, reproduce the main experiments (Model A / Model B), select robust features across BEiT variants, run external validation, and generate visualizations.
+**“Prognostic Impact of Pelvic Bone MRI Features in Patients with Cervical Cancer Undergoing Concurrent Chemoradiotherapy (CCRT)”**  
 
-> 📄 Related manuscript: “Deep Learning–Based Radiomics of Pelvic Bone T1‑weighted MRI for Cervical Cancer Survival Prediction Using a Mixture Stretched‑Exponential Model.”  (Please cite when using this code.)
+including all analyses described in the **Main Text and Supplementary Materials**:
 
----
-
-## 1) Repository Map (top-level)
-
-```
-code_paper/
-├─ environment.json
-├─ environment.txt
-├─ nvidia-smi.txt
-├─ pip-freeze.txt
-├─ external/                    # External validation & cohort harmonization (R, ipynb)
-│  ├─ ex_analysis.R
-│  ├─ ex_integrate.R
-│  ├─ ex_test.ipynb
-│  ├─ preprocessing.ipynb
-│  └─ ...
-├─ feature_selection/           # Feature recurrence & refinement across runs/variants (R)
-│  ├─ selection1.R
-│  └─ selection2.R
-├─ generalizable_analysis/      # Cross-variant common-feature analysis (R)
-│  └─ overlap_features_analysis.R
-├─ each_group/                  # Per‑group utilities (R)
-│  └─ ...
-├─ interpretation/              # Imaging attention & molecular links (R)
-│  └─ interpretation.R
-├─ IXI_pretrain/                # Domain-adaptive pretraining utilities / notes (ipynb)
-│  └─ _pretrained_models.ipynb
-├─ make_cache/                  # Caching helpers for preprocessing/features (py)
-│  └─ make_cache.py (if present)
-├─ beit0.py                     # Model A config: native 224×224, domain-adapted BEiT
-├─ beit.py                      # Model A config: 196→224 padded, domain-adapted BEiT
-├─ beit_resize.py               # Model A config: 196→224 resized, domain-adapted BEiT
-├─ beit0_o/                     # ImageNet-only pretrain (no domain adaptation), native
-├─ beit_o/                      # ImageNet-only, padded
-├─ beit_resize_o/               # ImageNet-only, resized
-├─ beit1/                       # Inferior 20-slice variant (domain-adapted)
-├─ model_A_backbone_extract/    # Slice encoder & feature extraction
-│  └─ beit/
-│     ├─ beit_extract.py        # Extract 768-dim slice features; average→patient vector
-│     └─ beit.py                # Model A core (blocks 4–11 fine-tuned)
-├─ model_B/                     # Survival heads
-│  ├─ model_B.ipynb             # Mixture‑SE training/eval (image / clinical / combined)
-│  └─ cox_model_B_analysis.R    # CoxPH benchmarking
-├─ preprocessing/               # MRI & mask preprocessing (ipynb)
-│  └─ preprocessing.ipynb
-├─ synthetic_benchmark/         # Simulation study
-│  ├─ synthetic_benchmark.ipynb
-│  └─ synthetic_analysis.R
-├─ visualization/               # Attention maps & activation differences (py)
-│  ├─ activation_diff.py
-│  ├─ patch_level_attention.py
-│  ├─ simlav.py / vis.py (if present)
-│  └─ ...
-└─ README.md
-```
-
-> The exact filenames may differ slightly by commit; use the closest variant if you don’t see an exact match.
+- Internal Monte-Carlo validation and stability-based feature selection (n4–n7, final n7 features 436 & 519)
+- External validation in the **TCGA-CESC** cohort
+- Correlation of n7 imaging features with exosomal RNAs (miR-574-3p, LINC01003, ACOT9) and CBC indices
+- Patch-level attention visualization over pelvic bone–masked slices
+- Decision curve analysis (DCA) for 5-year overall survival
+:contentReference[oaicite:0]{index=0}
 
 ---
 
-## 2) Environment
+## 📁 Repository Structure
 
-- **Python** ≥ 3.10, **CUDA** (optional, recommended)
-- Install from snapshot:
-  ```bash
-  # suggested: create a clean env first, then:
-  pip install -r environment.txt
-  # or replicate fully:
-  pip install -r pip-freeze.txt
-  ```
-- For GPU diagnostics see `nvidia-smi.txt`.
-- R scripts require **R ≥ 4.2** with the tidyverse ecosystem.
-
----
-
-## 3) Data Layout (expected)
-
-- **Inputs**
-  - Pretreatment **T1‑weighted pelvic MRI** per patient.
-  - Corresponding **pelvic bone masks** (NIfTI). (Masks can be generated via the paper’s pseudo‑labeling pipeline; see notes in `preprocessing/`.)
-- **Preprocessing** (performed in `preprocessing/preprocessing.ipynb`):
-  - N4 bias correction, Z‑score normalization.
-  - Resample to **1.0×1.0×1.0 mm**.
-  - Crop/pad to **[128, 224, 224]** (or **[128, 196, 196]** depending on variant).
-  - Extract **20 slices** (central or inferior set by variant) **within the bone mask**.
-
-> External cohorts with heterogeneous FOVs should be resampled to a fixed **physical FOV 224×224×128 mm³** to ensure complete pelvic coverage (see `external/` notes).
+| Folder | Purpose | Corresponding Figures/Tables |
+|--------|---------|-----------------------------|
+| `stable_feature_internal/` | Internal Monte-Carlo (30×) validation, n4–n7 feature recurrence, OS/DM/DM+LP/LP model performance & progression patterns | **Fig. 1**, **Tables S3–S5** |
+| `biological_relevance/` | Correlation of n7 imaging features with plasma exosomal RNAs (miR-574-3p, LINC01003, ACOT9) and hematologic indices (CBC0, CBCmin, CBC1, NLR/PLR/LMR) | **Fig. 3**, **Fig. S1** |
+| `external/` | TCGA-CESC external validation workflow, mirroring internal MC structure | **Fig. 2**, **Table S6** |
+| `dca/` | Decision curve analysis for 5-year OS (net benefit vs treat-all / treat-none) | **Fig. 5** |
+| `visualization/` | Patch-level attention and spatial activation maps for n7 features over pelvic bone–masked slices | **Fig. 4**, **Fig. S2** |
+| `supplement_information/` | Full Supplementary Methods implementation and scripts for tables/figures | **Supplementary Figs. S1–S2**, **Tables S1–S6** |
+| `backbone_extract/` | BEiT backbone feature extraction & domain-adaptive pretraining utilities | Supplementary Methods (Backbone description) |
+| `preprocessing/`, `make_cache/` | MRI preprocessing, bone mask application, slice caching (central / lower pelvis) | Supplementary Methods (Image preprocessing) |
+| `feature_selection/` | n4–n7 stability grouping, recurrence statistics, reproducibility across datasets/regions | **Tables S3–S4** |
+| `synthetic_benchmark/` | Mixture stretched-exponential (Mixture-SE) benchmarking against CoxPH / DeepSurv / Weibull on synthetic data | Supplementary Methods (Model comparison) |
+| `generalizable_analysis/` | Comparison of VT backbones / pretraining variants (BEiT & others) and robustness checks | Supplementary Methods (Backbone comparison) |
 
 ---
 
-## 4) BEiT Variants (Model A)
+# 🔧 Analysis Overview
 
-| Variant dir/file | Resize strategy | Pretraining |
-|---|---|---|
-| `beit0.py`       | **Native 224×224** (no resize) | **Domain‑adaptive** (ImageNet→IXI T1) |
-| `beit.py`        | **196→224 padded** (no stretch) | **Domain‑adaptive** |
-| `beit_resize.py` | **196→224 resized** (stretched) | **Domain‑adaptive** |
-| `beit0_o/`       | Native 224×224 | ImageNet‑only |
-| `beit_o/`        | 196→224 padded | ImageNet‑only |
-| `beit_resize_o/` | 196→224 resized | ImageNet‑only |
-| `beit1/`         | **Inferior 20 slices** (native 224) | Domain‑adaptive |
+## 1. Preprocessing & Pelvic Bone Masking
 
-Each Model A run encodes 20 masked slices with BEiT → **768‑dim** slice features → **patient‑level average** vector. During fine‑tuning, only **BEiT blocks 4–11** are updated to preserve pretraining.
+**Location:**  
+`preprocessing/`, `make_cache/`
 
-**Run Model A (example)**
+Implements the MRI pipeline described in the Methods and Supplementary Materials:
 
-```bash
-# Example: domain‑adapted, native 224
-python model_A_backbone_extract/beit/beit_extract.py   --variant beit0   --images /path/to/mri/   --masks  /path/to/masks/   --outdir ./features/beit0/run_XX/
-```
+- N4 bias-field correction  
+- Intensity standardization (e.g., robust Z-score)  
+- Resampling to 1-mm isotropic voxels  
+- Cropping/padding to a standardized pelvic field of view  
+- Slice caching (central or lower-pelvic slices per patient)  
+- Pelvic bone mask generation (manual labels → pseudo-labels → DL propagation)
 
-- Repeat **30×** (different seeds) per variant. Each run saves:
-  - patient‑level features (CSV or NPZ),
-  - split indices (train/val),
-  - logs/plots.
+These scripts create the bone-masked T1W-MRI inputs used for BEiT feature extraction and subsequent survival modeling.
 
 ---
 
-## 5) Feature Refinement (recurrence across runs)
+## 2. BEiT Feature Extraction (Backbone Model)
 
-1. For each run, compute survival correlation and keep **top‑100** backbone features.
-2. Stack across 30 runs (**3,000** entries) and form **nX** groups = features recurring ≥ **X** times (X=4..9).
-3. Use **`feature_selection/selection1.R`** and **`selection2.R`** to materialize refined sets.
-4. **`generalizable_analysis/overlap_features_analysis.R`** derives **common features across BEiT variants** (nested: **n4 ⊃ n5 ⊃ n6 ⊃ n7**).
+**Location:**  
+`backbone_extract/`
 
----
+Implements the **BEiT-based vision transformer** used in the manuscript:
 
-## 6) Survival Modeling (Model B) & Baselines
+- BEiT Base Patch16-224 backbone  
+- Initialized from publicly available weights, with domain-adaptive tuning on MRI when specified  
+- Frozen backbone during survival modeling; selected blocks can be fine-tuned in pretraining scripts  
+- Produces 768-dim slice embeddings from **bone-masked pretreatment T1W-MRI**  
+- Supports multiple preprocessing variants (native 224×224, resized / alternative pretraining schemes, lower-pelvic slice set)
 
-- **Model B (Mixture‑SE)** — Train on refined features (image‑only, clinical‑only, or combined):
-  - Notebook: `model_B/model_B.ipynb`
-  - Repeats **30×** (70/30 MC‑CV). Primary metric: **mean C‑index** over {12,24,36,48,60,72} months.
-- **CoxPH baseline** — `model_B/cox_model_B_analysis.R`
-- Outputs:
-  - Per‑run metrics (AUC, C‑index), distribution plots, and tables.
-
-**CLI‑style pseudocode**
-
-```bash
-# Mixture‑SE (image‑only)
-jupyter nbconvert --to notebook --execute model_B/model_B.ipynb   --TagRemovePreprocessor.remove_input_tags='["long-run"]'   --output outputs/model_B_mixtureSE_image_only.ipynb
-```
+These slice-level features are the basis for stability-based feature selection and the final n7 feature set (IDs **436** and **519**).
 
 ---
 
-## 7) External Validation
+## 3. Stability-Based Feature Selection (n4–n7)
 
-- Data harmonization & follow‑up definitions: `external/` (R & ipynb).
-- Ensure resampling to **224×224×128 mm³** physical FOV before slice extraction.
-- Reuse internal **run‑specific indices** (n4–n7) to extract matching features from external patients.
-- Evaluate with the same MC‑CV protocol (30×) and report **C‑index/AUC**.
+**Location:**  
+`feature_selection/`, `stable_feature_internal/`
 
----
+Implements the **Monte-Carlo (MC) stability analysis**:
 
-## 8) Visualization & Interpretation
+1. 30 independent 70:30 train/validation splits per dataset (MC cross-validation).  
+2. Within each split, survival-associated imaging features are screened.  
+3. Recurrence counts across 30 runs define the stability groups: **n4**, **n5**, **n6**, **n7**.  
+4. Across six datasets, features with recurrence 4–7 times form n4–n7 groups.  
+5. Reproducibility is checked in the lower-pelvic slice analysis;  
+   - n7 and n6 features are fully replicated,  
+   - n4/n5 show partial replication.  
+6. The **n7 features (IDs 436 and 519)** constitute the **final, most stable imaging biomarker set**, used in all downstream modeling (no re-selection in internal validation or external cohort).
 
-- **Patch‑level attention**: `visualization/patch_level_attention.py`
-- **Group activation differences** (e.g., >60‑month survivors vs <12‑month deaths): `visualization/activation_diff.py`
-- **Molecular associations** (exosomal RNA / CBC): `interpretation/interpretation.R`
+Reproduces:
 
----
-
-## 9) Synthetic Benchmark (optional but recommended)
-
-- Reproduce Fig. 2‑style comparisons (Mixture‑SE vs CoxPH/WeibullAFT/DeepSurv):
-  - `synthetic_benchmark/synthetic_benchmark.ipynb`
-  - `synthetic_benchmark/synthetic_analysis.R`
-
----
-
-## 10) End‑to‑End Quickstart
-
-```bash
-# 0) Create env
-pip install -r environment.txt
-
-# 1) Preprocess MRI + masks
-jupyter lab preprocessing/preprocessing.ipynb
-
-# 2) Train Model A (30 runs) for chosen BEiT variants
-python model_A_backbone_extract/beit/beit_extract.py --variant beit0 ...
-
-# 3) Select recurrent features (n4–n7) per variant
-Rscript feature_selection/selection1.R
-Rscript feature_selection/selection2.R
-
-# 4) Derive cross‑variant common features
-Rscript generalizable_analysis/overlap_features_analysis.R
-
-# 5) Train Model B (Mixture‑SE) on refined/common features
-jupyter lab model_B/model_B.ipynb
-
-# 6) Benchmark with CoxPH
-Rscript model_B/cox_model_B_analysis.R
-
-# 7) External validation
-jupyter lab external/ex_analysis.R  # or run via RStudio
-```
+- Stability summaries and cross-dataset reproducibility  
+- **Fig. 1 (part of panel A–C via performance by feature set)**  
+- **Tables S3–S4**
 
 ---
 
-## 11) Key Results (for orientation)
+## 4. Internal Survival Modeling (Mixture Stretched-Exponential)
 
-- **Internal validation (image‑only)**: mean **C‑index ≈ 0.829**, **AUC ≈ 0.852** across runs; adding clinical variables did **not** significantly improve overall survival prediction.
-- **External validation (TCGA‑CESC, CCRT‑only)**: **C‑index ≈ 0.703**, **AUC ≈ 0.732** (image‑only, n4–n7); **n7** (2 features) reached **C‑index ≈ 0.744**, **AUC ≈ 0.803**, comparable to image+clinical.
+**Location:**  
+`stable_feature_internal/`
 
-See manuscript for full statistics and confidence intervals.
+Implements the **two-component Mixture Stretched-Exponential (Mixture-SE) survival model**:
 
----
+- Survival function modeled as a weighted mixture of exponential components  
+- Captures heterogeneous risk and time-varying hazards  
+- For each of the 30 MC runs:  
+  - Slice-level parameters are predicted and aggregated to patient-level features.  
+  - Mixture-SE model is trained using selected features (n7, or alternative nX groups in supplementary analyses).  
+  - Time-dependent **C-index** and **AUC** are computed at 12–72 months.  
+  - Mean values across time are used as run-level performance metrics.  
+- Comparisons:  
+  - **Clinical-only**  
+  - **Image-only (n7 features)**  
+  - **Image + Clinical**
 
-## 12) Tips & Troubleshooting
+Reproduces:
 
-- **Slice coverage**: If the left/right pelvis is cut off, increase FOV or adjust centering before cropping to [128,224,224].
-- **Reproducibility**: Fix seeds per run; log train/val splits.
-- **Overfitting**: Prefer **n6/n7** in very small external cohorts to keep events‑per‑variable reasonable.
-- **Domain adaptation**: Models with **IXI T1** domain‑adaptive pretraining tend to yield more reproducible features and cleaner attention maps.
-
----
-
-## 13) Citation
-
-If you use this code, please cite the accompanying manuscript.
-
-Cho O, El Naqa I. *Deep Learning–Based Radiomics of Pelvic Bone T1‑weighted MRI for Cervical Cancer Survival Prediction Using a Mixture Stretched‑Exponential Model.*
-
----
-
-## 14) License
-
-Unless specified elsewhere, this code is released for **research use**. Please contact the authors for other uses.
+- Internal validation performance for **OS, DM, DM+LP, LP**  
+- Progression pattern distribution by survival status (LP, DM, DM+LP)  
+- **Fig. 1**  
+- **Table S5**
 
 ---
 
-## 15) Acknowledgments
+## 5. External Validation (TCGA-CESC)
 
-Thanks to collaborators and the institutions supporting this work.
+**Location:**  
+`external/`
+
+Implements the **TCGA-CESC external validation** as described in the manuscript:
+
+- Includes only CCRT-treated cases with adequate follow-up.  
+- Pretreatment T1W-MRI is processed with the **identical preprocessing pipeline** and frozen BEiT backbone used for the internal cohort.  
+- For each of the 30 internal runs:  
+  - External slice-level features are extracted using the corresponding run-specific aggregation.  
+  - The **predefined n7 features** (436, 519) are selected **without re-estimation**.  
+  - Mixture-SE models trained on internal runs are applied **directly** to external data (no retraining).  
+- Produces 30 run-wise external **C-index** and **AUC** values, mirroring the internal MC design.
+
+Reproduces:
+
+- External C-index distribution across 30 runs (Image-only, n7).  
+- Comparison of **Image-only**, **Clinical-only**, and **Image + Clinical** models for the representative best run.  
+- **Fig. 2**  
+- **Table S6**
+
+---
+
+## 6. Biological Relevance: Exosomal RNAs & Hematologic Indices
+
+**Location:**  
+`biological_relevance/`
+
+Assesses the **biological interpretation of n7 features** using the 41-patient subset with:
+
+- Plasma exosomal RNA log₂ fold change (baseline → 2 weeks post-RT) for:  
+  - **miR-574-3p**, **LINC01003**, **ACOT9**  
+- Serial CBC metrics (CBC0, minimum during treatment, CBC1, and derived ratios):  
+  - ANC, ALC, PLT, Hb, Mo  
+  - NLR, PLR, LMR (0 and 1)
+
+Pipeline:
+
+1. Compute Pearson correlations between n7 features and biomarker variables.  
+2. Select top variables per run (e.g., |r| ≈ 0.4–0.6).  
+3. Aggregate across 30 runs → 150 feature–biomarker associations.  
+4. Summarize recurrence frequencies to identify dominant axes.
+
+Key outputs:
+
+- Dominant **miR-574-3p–LINC01003–ACOT9** exosomal RNA axis associated with n7 features.  
+- Lower and less consistent recurrence for CBC-derived indices (e.g., Hb, NLR).  
+
+Reproduces:
+
+- **Fig. 3**  
+- **Fig. S1**
+
+---
+
+## 7. Decision Curve Analysis (DCA)
+
+**Location:**  
+`dca/`
+
+Implements the DCA described in the manuscript:
+
+- Uses n7 feature set from **Run 4** and a representative survival model from **Run 6** (external C-index closest to the median).  
+- Computes predicted 5-year OS risk (T = 60 months) per patient.  
+- Net Benefit is evaluated across threshold probabilities (approximately 0–0.8):  
+  - **Image-only** model  
+  - **Image + Clinical** model  
+  - **Clinical-only** model  
+  - “Treat all” and “Treat none” strategies  
+- Provides separate analyses for:  
+  - Internal validation cohort (n = 149)  
+  - External TCGA-CESC cohort (n = 38)
+
+Reproduces:
+
+- Net benefit curves for 5-year OS  
+- Demonstrates higher net benefit for image-based models in threshold ranges ~0.2–0.6  
+- **Fig. 5**
+
+---
+
+## 8. Patch-Level Attention Visualization
+
+**Location:**  
+`visualization/`
+
+Visualizes **patch-level attention and spatial activation differences** for n7 features:
+
+- Generates bone-masked T1W-MRI slices for:  
+  - Long-term survivors (>60 months)  
+  - Early-death cases (<12 months)  
+- Overlays BEiT-derived attention maps and activation patterns, showing:  
+  - High attention localized to **posterior iliac bone marrow** and **upper sacral marrow**, regions rich in active hematopoietic tissue.  
+  - Distinct spatial activation patterns between survival-extreme groups.  
+
+Reproduces:
+
+- **Fig. 4** (attention maps and activation differences)  
+- **Fig. S2** (additional visualization details, if applicable)
+
+---
+
+## 9. Synthetic Benchmark & Generalizability Analyses
+
+**Location:**  
+- `synthetic_benchmark/`  
+- `generalizable_analysis/`
+
+These folders contain supplementary experiments:
+
+- **Synthetic benchmark:**  
+  - Compares the Mixture-SE model against CoxPH, DeepSurv, and Weibull-AFT models on synthetic data with nonlinear and time-varying hazards.  
+
+- **Generalizable analysis:**  
+  - Explores alternative backbones and pretraining variants to assess robustness of the n7 feature concept and overall modeling framework.
+
+They support the **methodological context** described in the Supplementary Methods.
+
+---
+
+## 10. Reproducing the Manuscript Results
+
+To reproduce the main figures and tables:
+
+- **Fig. 1 & Tables S3–S5** → `stable_feature_internal/`, `feature_selection/`  
+- **Fig. 2 & Table S6** → `external/`  
+- **Fig. 3 & Fig. S1** → `biological_relevance/`  
+- **Fig. 4 & Fig. S2** → `visualization/`  
+- **Fig. 5** → `dca/`  
+- **Supplementary tables/figures** → `supplement_information/`
+
+Each subfolder contains R/Python scripts with comments indicating:
+
+- Required input files (internal cohort, TCGA-CESC, biomarker subset)  
+- Output CSV/figure paths  
+- Key hyperparameters (e.g., number of MC runs, thresholds, bootstrap iterations)
+
+Please refer to the **Supplementary Methods** for detailed parameter choices and additional notes on preprocessing, model training, and evaluation.

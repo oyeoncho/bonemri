@@ -15,17 +15,14 @@ import gc
 # -----------------------------
 CACHE_DIR = "./slice_cache1_224"
 MODEL_PATH = "./models/beit0/best_model_beit_run0.pt"
-SAVE_DIR = "./models/beit0/visualization/patient_patch_vis_beit0_n5"
+SAVE_DIR = "./models/beit0/visualization/patient_patch_vis_beit0_n7"
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 PATCH_SIZE = 16
 IMAGE_RESOLUTION = (224, 224)
 PATCH_GRID = IMAGE_RESOLUTION[0] // PATCH_SIZE
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-#important_features = [436, 519]
-#important_features = [213, 215, 266, 436, 519]
-important_features = [2, 107, 109, 137, 173, 209, 213, 215, 223, 266, 327, 374, 391, 436, 499, 519, 554, 715]
-#important_features = [2, 10, 15, 25, 55, 107, 109, 123, 137, 143, 152, 163, 167, 169, 173, 181, 194, 209, 210, 213, 215, 220, 223, 240, 255, 266, 289, 309, 327, 328, 352, 361, 368, 374, 391, 402, 407, 420, 436, 439, 451, 498, 499, 507, 514, 519, 554, 560, 565, 576, 577, 583, 605, 617, 633, 653, 656, 657, 666, 710, 715, 747]
+important_features = [436, 519]
 
 # -----------------------------
 # 모델 정의

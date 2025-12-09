@@ -7,8 +7,8 @@ library(stringr)
 ## -----------------------------
 ## 1) 설정
 ## -----------------------------
-T0 <- 12
-base_dir <- "image_data/survival_model/mixture_non_fix/tune/beit0/results/generalization/test1_1/dl0/n7_30_30/file04"
+T0 <- 60
+base_dir <- "image_data/survival_model/mixture_non_fix/non_nest/beit0/results/generalization/test1_1/dl0/n7_30_30/file04"
 
 fname_internal_image   <- file.path(base_dir, "dca_internal_file04_run06_Image_only_T60.csv")
 fname_internal_clin    <- file.path(base_dir, "dca_internal_file04_run06_Clinical_only_T60.csv")

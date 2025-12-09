@@ -13,7 +13,7 @@ import gc
 # -----------------------------
 CACHE_DIR = "./slice_cache1_224"  # 마스킹된 슬라이스 텐서들이 저장된 디렉토리
 MODEL_PATH = "./models/beit0/best_model_beit_run0.pt"  # BEiT 모델 체크포인트
-SAVE_DIR = "./models/beit0/visualization/group_spatial_diff_all_beit0_n5"  # 결과 저장 폴더
+SAVE_DIR = "./models/beit0/visualization/group_spatial_diff_all_beit0_n7"  # 결과 저장 폴더
 os.makedirs(SAVE_DIR, exist_ok=True)
 
 PATCH_SIZE = 16
@@ -21,11 +21,7 @@ IMAGE_RESOLUTION = (224, 224)
 PATCH_GRID = IMAGE_RESOLUTION[0] // PATCH_SIZE
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# 중요 feature index 전체
-#important_features = [436, 519]
-#important_features = [213, 215, 266, 436, 519]
-important_features = [2, 107, 109, 137, 173, 209, 213, 215, 223, 266, 327, 374, 391, 436, 499, 519, 554, 715]
-#important_features = [2, 10, 15, 25, 55, 107, 109, 123, 137, 143, 152, 163, 167, 169, 173, 181, 194, 209, 210, 213, 215, 220, 223, 240, 255, 266, 289, 309, 327, 328, 352, 361, 368, 374, 391, 402, 407, 420, 436, 439, 451, 498, 499, 507, 514, 519, 554, 560, 565, 576, 577, 583, 605, 617, 633, 653, 656, 657, 666, 710, 715, 747]
+important_features = [436, 519]
 
 # 비교 그룹 정의
 group_a = ["VP005_pre_0000", "VP007_pre_0000", "VP013_pre_0000", "VP032_pre_0000", "VP035_pre_0000",
