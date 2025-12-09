@@ -131,7 +131,7 @@ Reproduces:
 Implements the **TCGA-CESC external validation** as described in the manuscript:
 
 - Includes only CCRT-treated cases with adequate follow-up.  
-- Pretreatment T1W-MRI is processed with the **identical preprocessing pipeline** and frozen BEiT backbone used for the internal cohort.  
+- Pretreatment T1W-MRI is processed with the **identical preprocessing pipeline** and frozen BEiT backbone used for the discovery cohort.  
 - For each of the 30 internal runs:  
   - External slice-level features are extracted using the corresponding run-specific aggregation.  
   - The **predefined n7 features** (436, 519) are selected **without re-estimation**.  
@@ -257,7 +257,7 @@ To reproduce the main figures and tables:
 
 Each subfolder contains R/Python scripts with comments indicating:
 
-- Required input files (internal cohort, TCGA-CESC, biomarker subset)  
+- Required input files (discovery cohort, TCGA-CESC, biomarker subset)  
 - Output CSV/figure paths  
 - Key hyperparameters (e.g., number of MC runs, thresholds, bootstrap iterations)
 
